@@ -4,23 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Great Wave Startpage</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Dancing+Script:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.26.0"
-  }
-}
-</script>
-</head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+
+    <style>
+      body {
+        background: url("https://upload.wikimedia.org/wikipedia/commons/0/0a/Great_Wave_off_Kanagawa2.jpg") no-repeat center center fixed;
+        background-size: cover;
+        font-family: 'Lato', sans-serif;
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center h-screen bg-black/40">
+    <div class="bg-white/70 backdrop-blur-md rounded-2xl p-10 shadow-xl text-center max-w-md">
+      <h1 class="text-4xl font-oswald mb-4">🌊 The Great Wave Startpage</h1>
+      <p class="text-lg mb-6">Welcome to your minimalist start page.</p>
+
+      <div class="grid grid-cols-2 gap-4">
+        <a href="https://www.google.com" target="_blank"
+           class="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold transition">
+          Google
+        </a>
+        <a href="https://github.com" target="_blank"
+           class="bg-gray-800 hover:bg-black text-white py-2 rounded-lg font-bold transition">
+          GitHub
+        </a>
+        <a href="https://youtube.com" target="_blank"
+           class="bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold transition">
+          YouTube
+        </a>
+        <a href="https://openai.com" target="_blank"
+           class="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold transition">
+          OpenAI
+        </a>
+      </div>
+
+      <footer class="mt-6 text-sm text-gray-700">
+        Made with ❤️ and TailwindCSS
+      </footer>
+    </div>
   </body>
 </html>
