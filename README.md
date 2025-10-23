@@ -1,10 +1,10 @@
-![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-40-09.png) ![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-42-17.png)
+![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-42-17.png)
 
-![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-42-39.png)![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-43-07.png)
+# Themes
+Over 11 pre-made themes!
+click the settings icon to switch between themes
 
-![Display of the startpage](https://github.com/Justheretohack0/BartStart-/blob/main/img-2025-10-23-21-43-26.png)
-
-# Run and deploy your AI Studio app
+# Run and deploy your Studio app
 
 This contains everything you need to run your app locally.
 
