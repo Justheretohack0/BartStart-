@@ -1,4 +1,4 @@
-![Display of the startpage](https://ibb.co/Ng8J480q))
+![Display of the startpage](https://ibb.co/Ng8J480q)
 
 # Run and deploy your AI Studio app
 
