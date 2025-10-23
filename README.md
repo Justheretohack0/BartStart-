@@ -1,4 +1,4 @@
-![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](https://pasteboard.co/dQwXWa39Pzs8.png))
+![Display of the startpage](https://ibb.co/Ng8J480q))
 
 # Run and deploy your AI Studio app
 
