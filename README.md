@@ -4,11 +4,6 @@
 Over 11 pre-made themes!
 click the settings icon to switch between themes
 
-# Run and deploy your Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/1BpCfMKa7Sg8_Mt0f0rhj6FPIOfzWcxCg
 
 ## Run Locally
 
