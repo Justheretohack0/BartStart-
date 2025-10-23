@@ -1,6 +1,4 @@
 // /api/gemini.js
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export default async function handler(req, res) {
   try {
     const body =
@@ -10,18 +8,34 @@ export default async function handler(req, res) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) throw new Error("Missing GEMINI_API_KEY");
 
-    // 👇 force the SDK to use the stable v1 endpoint
-    const genAI = new GoogleGenerativeAI(key, {
-      apiEndpoint: "https://generativelanguage.googleapis.com/v1",
-    });
+    // Direct call to the stable v1 REST API
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=" + key,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: message }] }],
+        }),
+      }
+    );
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    const result = await model.generateContent(message);
-    const reply = result.response.text();
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini API error:", data);
+      throw new Error(data.error?.message || "Gemini API request failed");
+    }
+
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from Gemini.";
 
     res.status(200).json({ reply });
   } catch (err) {
-    console.error("Gemini API error (detailed):", err);
-    res.status(500).json({ error: "Gemini request failed", details: String(err) });
+    console.error("Gemini API error:", err);
+    res
+      .status(500)
+      .json({ error: "Gemini request failed", details: String(err) });
   }
 }
