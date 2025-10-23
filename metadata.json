@@ -1,0 +1,7 @@
+{
+  "name": "The Great Wave Startpage",
+  "description": "A beautiful and functional startpage inspired by 'The Great Wave off Kanagawa', featuring a custom top bar, a large central clock, and system monitoring widgets.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
