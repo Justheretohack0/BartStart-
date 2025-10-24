@@ -1,23 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from "@google/genai";
 
-// --- Gemini AI Instance ---
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+import React, { useState, useEffect, useRef } from 'react';
 
 // --- Types ---
-interface GroundingSource {
-    uri: string;
-    title: string;
-}
-interface ConversationEntry {
-    role: 'user' | 'model';
-    content: string;
-    sources?: GroundingSource[];
-}
-type PrebuiltThemeKey = 'morning' | 'day' | 'night' | 'stormy' | 'dawn' | 'sunset' | 'midnight' | 'sakura' | 'matcha' | 'koinobori' | 'sumie';
-type ThemeKey = PrebuiltThemeKey | string; // string for custom theme names
-
 interface CustomTheme {
     name: string;
     colors: {
@@ -27,6 +12,13 @@ interface CustomTheme {
         dateText: string;
         statsText: string;
     };
+}
+type PrebuiltThemeKey = 'morning' | 'day' | 'night' | 'stormy' | 'dawn' | 'sunset' | 'midnight' | 'sakura' | 'matcha' | 'koinobori' | 'sumie';
+type ThemeKey = PrebuiltThemeKey | string; // string for custom theme names
+type SearchEngine = 'google' | 'bing' | 'duckduckgo' | 'startpage';
+interface Shortcut {
+    name: string;
+    url: string;
 }
 
 const PREBUILT_THEMES: PrebuiltThemeKey[] = ['morning', 'day', 'night', 'stormy', 'dawn', 'sunset', 'midnight', 'sakura', 'matcha', 'koinobori', 'sumie'];
@@ -75,12 +67,6 @@ const PartlyCloudyIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path d="M16 8A5 5 0 1 1 9 5.5"/>
     </svg>
 );
-const StarIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-);
-
 
 // --- Custom Hook for Weather ---
 const useWeather = () => {
@@ -223,17 +209,6 @@ const SystemInfo: React.FC<{ textColor: string, strokeColor: string, barColor: s
     );
 };
 
-// --- Gemini Thinking Animation ---
-const GeminiThinkingAnimation: React.FC = () => (
-    <div className="flex justify-start">
-        <div className="flex items-center justify-center gap-1.5 p-3 rounded-2xl">
-            <div className="w-2 h-2 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-            <div className="w-2 h-2 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-            <div className="w-2 h-2 bg-current rounded-full animate-bounce"></div>
-        </div>
-    </div>
-);
-
 // --- Custom Theme Editor ---
 const CustomThemeEditor: React.FC<{
     isOpen: boolean;
@@ -302,27 +277,47 @@ const Settings: React.FC<{
     setThemeOverride: (theme: ThemeKey | null) => void;
     customThemes: CustomTheme[];
     openCustomEditor: () => void;
-}> = ({ theme, isSettingsOpen, setIsSettingsOpen, activeThemeKey, setThemeOverride, customThemes, openCustomEditor }) => {
+    searchMode: SearchEngine;
+    handleSetSearchMode: (mode: SearchEngine) => void;
+    showStats: boolean;
+    onToggleStats: () => void;
+    shortcuts: Shortcut[];
+    onAddShortcut: (name: string, url: string) => void;
+    onDeleteShortcut: (index: number) => void;
+}> = ({
+    theme, isSettingsOpen, setIsSettingsOpen, activeThemeKey,
+    setThemeOverride, customThemes, openCustomEditor, searchMode,
+    handleSetSearchMode, showStats, onToggleStats, shortcuts,
+    onAddShortcut, onDeleteShortcut
+}) => {
+    const [newShortcutName, setNewShortcutName] = useState('');
+    const [newShortcutUrl, setNewShortcutUrl] = useState('');
+
+    const handleAddShortcutClick = () => {
+        if (newShortcutName.trim() && newShortcutUrl.trim()) {
+            onAddShortcut(newShortcutName, newShortcutUrl);
+            setNewShortcutName('');
+            setNewShortcutUrl('');
+        }
+    };
 
     const GearIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.48.398.668 1.03.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.331.183-.581.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.075-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.48.398.668 1.03.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.331.183-.581.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+    );
+    const DeleteIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
     );
 
     const prebuiltThemeOptions: { key: PrebuiltThemeKey, label: string }[] = [
-        { key: 'morning', label: 'Morning' },
-        { key: 'day', label: 'Day' },
-        { key: 'night', label: 'Night' },
-        { key: 'stormy', label: 'Stormy Sea' },
-        { key: 'dawn', label: 'Calm Dawn' },
-        { key: 'sunset', label: 'Golden Sunset' },
-        { key: 'midnight', label: 'Midnight Ink' },
-        { key: 'sakura', label: 'Sakura' },
-        { key: 'matcha', label: 'Matcha' },
-        { key: 'koinobori', label: 'Koinobori' },
-        { key: 'sumie', label: 'Sumi-e' },
+        { key: 'morning', label: 'Morning' }, { key: 'day', label: 'Day' }, { key: 'night', label: 'Night' },
+        { key: 'stormy', label: 'Stormy Sea' }, { key: 'dawn', label: 'Calm Dawn' }, { key: 'sunset', label: 'Golden Sunset' },
+        { key: 'midnight', label: 'Midnight Ink' }, { key: 'sakura', label: 'Sakura' }, { key: 'matcha', label: 'Matcha' },
+        { key: 'koinobori', label: 'Koinobori' }, { key: 'sumie', label: 'Sumi-e' },
     ];
     
     return (
@@ -334,90 +329,117 @@ const Settings: React.FC<{
             >
                 <GearIcon />
             </button>
-            {isSettingsOpen && (
+            <div 
+                className={`fixed inset-0 z-20 transition-opacity duration-300 ${isSettingsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setIsSettingsOpen(false)}
+            >
                 <div 
-                    className="fixed inset-0 bg-black/10 z-20" 
-                    onClick={() => setIsSettingsOpen(false)}
+                    className={`absolute bottom-24 right-6 p-4 rounded-2xl shadow-2xl w-64 max-h-[70vh] overflow-y-auto transition-all duration-300 ease-out ${theme.modalBg} ${theme.modalText} border ${theme.modalBorder} backdrop-blur-2xl ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} 
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    <div 
-                        className={`absolute bottom-24 right-6 p-4 rounded-2xl shadow-2xl w-56 max-h-[70vh] overflow-y-auto transition-colors duration-1000 ${theme.modalBg} ${theme.modalText} border ${theme.modalBorder} backdrop-blur-2xl`} 
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="font-bold text-sm tracking-wider uppercase mb-3">Theme</h3>
-                        <div className="flex flex-col items-start gap-1">
-                             <button
-                                onClick={() => { setThemeOverride(null); setIsSettingsOpen(false); }}
-                                className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ activeThemeKey === null ? theme.modalButtonBg : 'bg-transparent' }`}
-                            >
-                                Automatic
-                            </button>
-                             <button
-                                onClick={openCustomEditor}
-                                className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg}`}
-                            >
-                                + Create Theme
-                            </button>
-                            {customThemes.map(opt => (
+                    <h3 className="font-bold text-sm tracking-wider uppercase mb-3">Theme</h3>
+                    <div className="flex flex-col items-start gap-1">
+                        <button onClick={() => { setThemeOverride(null); setIsSettingsOpen(false); }} className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ activeThemeKey === null ? theme.modalButtonBg : 'bg-transparent' }`}>Automatic</button>
+                        <button onClick={openCustomEditor} className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg}`}>+ Create Theme</button>
+                        {customThemes.map(opt => (
+                            <button key={opt.name} onClick={() => { setThemeOverride(opt.name); setIsSettingsOpen(false); }} className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ activeThemeKey === opt.name ? theme.modalButtonBg : 'bg-transparent' }`}>{opt.name}</button>
+                        ))}
+                        <div className={`w-full h-px my-2 ${theme.modalBorder}`}></div>
+                        {prebuiltThemeOptions.map(opt => (
+                            <button key={opt.label} onClick={() => { setThemeOverride(opt.key); setIsSettingsOpen(false); }} className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ activeThemeKey === opt.key ? theme.modalButtonBg : 'bg-transparent' }`}>{opt.label}</button>
+                        ))}
+                    </div>
+
+                    <div className={`w-full h-px my-2 ${theme.modalBorder}`}></div>
+                    
+                    <h3 className="font-bold text-sm tracking-wider uppercase mb-1">View</h3>
+                    <div className="flex items-center justify-between px-3 py-1.5">
+                        <label htmlFor="stats-toggle" className="text-sm cursor-pointer select-none">System Stats</label>
+                        <button
+                            id="stats-toggle"
+                            onClick={onToggleStats}
+                            role="switch"
+                            aria-checked={showStats}
+                            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-transparent ${theme.inputFocusRing} ${showStats ? 'bg-sky-500' : theme.modalButtonBg}`}
+                        >
+                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${showStats ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+
+                    <div className={`w-full h-px my-2 ${theme.modalBorder}`}></div>
+
+                    <h3 className="font-bold text-sm tracking-wider uppercase mb-2">Shortcuts</h3>
+                    <div className="space-y-2 px-1">
+                        {shortcuts.map((shortcut, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm group">
+                                <span className="truncate pr-2">{shortcut.name}</span>
                                 <button
-                                    key={opt.name}
-                                    onClick={() => { setThemeOverride(opt.name); setIsSettingsOpen(false); }}
-                                    className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ activeThemeKey === opt.name ? theme.modalButtonBg : 'bg-transparent' }`}
+                                    onClick={() => onDeleteShortcut(index)}
+                                    className="opacity-50 group-hover:opacity-100 transition-opacity"
+                                    aria-label={`Delete ${shortcut.name} shortcut`}
                                 >
-                                    {opt.name}
+                                    <DeleteIcon />
                                 </button>
-                            ))}
-                             <div className={`w-full h-px my-2 ${theme.modalBorder}`}></div>
-                            {prebuiltThemeOptions.map(opt => {
-                                const isActive = activeThemeKey === opt.key;
-                                return (
-                                <button
-                                    key={opt.label}
-                                    onClick={() => { setThemeOverride(opt.key); setIsSettingsOpen(false); }}
-                                    className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ isActive ? theme.modalButtonBg : 'bg-transparent' }`}
-                                >
-                                    {opt.label}
-                                </button>
-                                )}
-                            )}
+                            </div>
+                        ))}
+                        {shortcuts.length > 0 && <div className={`w-full h-px my-2 ${theme.modalBorder}`}></div>}
+                        <div className="pt-1 space-y-2">
+                            <input
+                                type="text"
+                                placeholder="Name"
+                                value={newShortcutName}
+                                onChange={(e) => setNewShortcutName(e.target.value)}
+                                className={`w-full border-none rounded-md px-2 py-1 text-sm ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
+                            />
+                            <input
+                                type="url"
+                                placeholder="URL (e.g. google.com)"
+                                value={newShortcutUrl}
+                                onChange={(e) => setNewShortcutUrl(e.target.value)}
+                                className={`w-full border-none rounded-md px-2 py-1 text-sm ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
+                            />
+                            <button
+                                onClick={handleAddShortcutClick}
+                                className={`w-full text-center px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonBg} ${theme.modalButtonHoverBg}`}
+                            >
+                                Add Shortcut
+                            </button>
                         </div>
                     </div>
+
+                    <h3 className="font-bold text-sm tracking-wider uppercase mt-4 mb-2">Search Engine</h3>
+                    <div className="flex flex-col items-start gap-1">
+                        {SEARCH_OPTIONS.map(opt => (
+                            <button
+                                key={opt.key}
+                                onClick={() => { handleSetSearchMode(opt.key); setIsSettingsOpen(false); }}
+                                className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${theme.modalButtonHoverBg} ${ searchMode === opt.key ? theme.modalButtonBg : 'bg-transparent' }`}
+                            >
+                                {opt.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            )}
+            </div>
         </>
     );
 };
 
 
-// --- Search Toggle ---
-const SearchToggle: React.FC<{
-    searchMode: 'ai' | 'google';
-    setSearchMode: (mode: 'ai' | 'google') => void;
-    theme: any;
-}> = ({ searchMode, setSearchMode, theme }) => {
-    const baseStyle = `px-4 py-1.5 text-sm rounded-full transition-colors font-semibold`;
-    const activeStyle = `${theme.modalButtonBg}`;
-    const inactiveStyle = `bg-transparent ${theme.modalButtonHoverBg}`;
-
-    return (
-        <div className={`fixed bottom-6 left-6 flex items-center gap-1 p-1 rounded-full ${theme.modalBg} ${theme.modalText} backdrop-blur-sm border ${theme.modalBorder} shadow-lg z-10 transition-colors duration-1000`}>
-            <button
-                onClick={() => setSearchMode('ai')}
-                className={`${baseStyle} ${searchMode === 'ai' ? activeStyle : inactiveStyle}`}
-                aria-pressed={searchMode === 'ai'}
-            >
-                AI
-            </button>
-            <button
-                onClick={() => setSearchMode('google')}
-                className={`${baseStyle} ${searchMode === 'google' ? activeStyle : inactiveStyle}`}
-                aria-pressed={searchMode === 'google'}
-            >
-                Google
-            </button>
-        </div>
-    );
+// --- Search Engine Data ---
+const SEARCH_URLS: Record<SearchEngine, string> = {
+  google: 'https://www.google.com/search?q=',
+  bing: 'https://www.bing.com/search?q=',
+  duckduckgo: 'https://duckduckgo.com/?q=',
+  startpage: 'https://www.startpage.com/do/search?query=',
 };
 
+const SEARCH_OPTIONS: { key: SearchEngine; name: string; }[] = [
+    { key: 'google', name: 'Google' },
+    { key: 'bing', name: 'Bing' },
+    { key: 'duckduckgo', name: 'DuckDuckGo' },
+    { key: 'startpage', name: 'Startpage' },
+];
 
 const Toast: React.FC<{ message: string; show: boolean }> = ({ message, show }) => (
     <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-white bg-black/50 backdrop-blur-sm shadow-lg transition-all duration-300 ease-in-out z-50 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
@@ -425,31 +447,47 @@ const Toast: React.FC<{ message: string; show: boolean }> = ({ message, show }) 
     </div>
 );
 
+// --- Shortcuts Display Component ---
+const ShortcutsDisplay: React.FC<{ shortcuts: Shortcut[], theme: any }> = ({ shortcuts, theme }) => {
+    if (shortcuts.length === 0) return <div className="h-4"></div>; // Reserve space to prevent layout shift
+
+    return (
+        <div className="flex justify-center items-center gap-2 mb-4 flex-wrap px-4 h-min">
+            {shortcuts.map((shortcut, index) => (
+                <a
+                    key={index}
+                    href={shortcut.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`px-3 py-1.5 rounded-full text-sm transition-colors duration-200 animate-fade-in-up ${theme.modalButtonBg} ${theme.modalButtonHoverBg} ${theme.inputText}`}
+                    style={{ animationDelay: `${index * 50}ms`}}
+                >
+                    {shortcut.name}
+                </a>
+            ))}
+        </div>
+    );
+};
 
 // --- Main App Component ---
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [conversationHistory, setConversationHistory] = useState<ConversationEntry[]>([]);
-  const [isGeminiLoading, setIsGeminiLoading] = useState(false);
-  const [geminiQuery, setGeminiQuery] = useState('');
-  const [followUpQuery, setFollowUpQuery] = useState('');
-  const chatSession = useRef<Chat | null>(null);
-
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [themeOverride, setThemeOverride] = useState<ThemeKey | null>(null);
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [isCustomThemeEditorOpen, setIsCustomThemeEditorOpen] = useState(false);
+  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
 
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
-  const modalStartPos = useRef({ x: 0, y: 0 });
-  const modalContentRef = useRef<HTMLDivElement>(null);
-  const [closeModalClickedOnce, setCloseModalClickedOnce] = useState(false);
-  const [showCloseToast, setShowCloseToast] = useState(false);
-  const toastTimer = useRef<any>(null);
-
-  const [searchMode, setSearchMode] = useState<'ai' | 'google'>('ai');
+  const [searchMode, setSearchMode] = useState<SearchEngine>(
+    () => (localStorage.getItem('defaultSearchEngine') as SearchEngine) || 'google'
+  );
+  
+  const [showStats, setShowStats] = useState(
+    () => localStorage.getItem('showStats') !== 'false'
+  );
+  
   const { weather, error: weatherError } = useWeather();
   const [showWeatherToast, setShowWeatherToast] = useState(false);
   const weatherToastTimer = useRef<any>(null);
@@ -459,8 +497,12 @@ const App: React.FC = () => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     const savedTheme = localStorage.getItem('themeOverride');
     if (savedTheme) setThemeOverride(savedTheme);
+    
     const savedCustomThemes = localStorage.getItem('customThemes');
     if (savedCustomThemes) setCustomThemes(JSON.parse(savedCustomThemes));
+
+    const savedShortcuts = localStorage.getItem('shortcuts');
+    if (savedShortcuts) setShortcuts(JSON.parse(savedShortcuts));
 
     const style = document.createElement('style');
     style.innerHTML = `
@@ -470,8 +512,16 @@ const App: React.FC = () => {
             100% { background-position: 0% 50%; }
         }
         .animated-gradient {
-            background-size: 200% 200%;
-            animation: gradient-animation 18s ease infinite;
+            background-size: 400% 400%;
+            animation: gradient-animation 30s ease infinite;
+        }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.5s ease-out forwards;
+            opacity: 0;
         }
     `;
     document.head.appendChild(style);
@@ -489,84 +539,37 @@ const App: React.FC = () => {
     }
     return () => clearTimeout(weatherToastTimer.current);
   }, [weatherError]);
-  
-  const handleGeminiSubmit = async (query: string, isFollowUp: boolean) => {
-    if (!query.trim() || isGeminiLoading) return;
-
-    setIsGeminiLoading(true);
-    
-    if (!isFollowUp) {
-        setConversationHistory([{ role: 'user', content: query }]);
-        chatSession.current = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: { tools: [{googleSearch: {}}] },
-        });
-    } else {
-        setConversationHistory(prev => [...prev, { role: 'user', content: query }]);
-    }
-    
-    try {
-        if (!chatSession.current) {
-            throw new Error("Chat session not initialized.");
-        }
-        const response = await chatSession.current.sendMessage({ message: query });
-        
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-            ?.map((c: any) => c.web)
-            .filter(Boolean)
-            .map((w: any) => ({ uri: w.uri, title: w.title })) || [];
-        
-        setConversationHistory(prev => [...prev, { role: 'model', content: response.text, sources: sources }]);
-
-    } catch (error) {
-        console.error(error);
-        setConversationHistory(prev => [...prev, { role: 'model', content: 'An error occurred. Please try again.' }]);
-    } finally {
-        setIsGeminiLoading(false);
-        setTimeout(() => modalContentRef.current?.scrollTo({ top: modalContentRef.current.scrollHeight, behavior: 'smooth' }), 100);
-    }
-  };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (searchMode === 'ai') {
-            handleGeminiSubmit(geminiQuery, false);
-        } else {
-            if (geminiQuery.trim()) {
-                window.location.href = `https://www.google.com/search?q=${encodeURIComponent(geminiQuery)}`;
-            }
+        if (searchQuery.trim()) {
+            const baseUrl = SEARCH_URLS[searchMode];
+            window.location.href = `${baseUrl}${encodeURIComponent(searchQuery)}`;
         }
     };
-
 
   const formatHours = (date: Date): string => date.getHours().toString().padStart(2, '0');
   const formatMinutes = (date: Date): string => date.getMinutes().toString().padStart(2, '0');
   const formatDay = (date: Date): string => date.toLocaleDateString('en-US', { weekday: 'long' });
   const formatDate = (date: Date): string => date.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
-  
-  const handleCloseModal = () => {
-    setGeminiQuery(''); 
-    setFollowUpQuery(''); 
-    setConversationHistory([]);
-    chatSession.current = null;
-    setModalPosition({ x: 0, y: 0 }); 
-    setCloseModalClickedOnce(false); 
-    setShowCloseToast(false);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-  };
-
-  const handleBackdropClick = () => {
-    if (closeModalClickedOnce) { handleCloseModal(); } 
-    else {
-        setCloseModalClickedOnce(true); setShowCloseToast(true);
-        toastTimer.current = setTimeout(() => { setCloseModalClickedOnce(false); setShowCloseToast(false); }, 3000);
-    }
-  };
 
   const handleThemeOverride = (theme: ThemeKey | null) => {
     setThemeOverride(theme);
     if (theme) localStorage.setItem('themeOverride', theme);
     else localStorage.removeItem('themeOverride');
+  };
+  
+  const handleToggleStats = () => {
+      setShowStats(prev => {
+          const newState = !prev;
+          localStorage.setItem('showStats', String(newState));
+          return newState;
+      });
+  };
+
+  const handleSetSearchMode = (mode: SearchEngine) => {
+    setSearchMode(mode);
+    localStorage.setItem('defaultSearchEngine', mode);
   };
 
   const handleSaveCustomTheme = (theme: CustomTheme) => {
@@ -574,6 +577,23 @@ const App: React.FC = () => {
     setCustomThemes(updatedThemes);
     localStorage.setItem('customThemes', JSON.stringify(updatedThemes));
     handleThemeOverride(theme.name);
+  };
+
+  const handleAddShortcut = (name: string, url: string) => {
+    let fullUrl = url.trim();
+    if (!/^https?:\/\//i.test(fullUrl)) {
+        fullUrl = 'https://' + fullUrl;
+    }
+    const newShortcut: Shortcut = { name: name.trim(), url: fullUrl };
+    const updatedShortcuts = [...shortcuts, newShortcut];
+    setShortcuts(updatedShortcuts);
+    localStorage.setItem('shortcuts', JSON.stringify(updatedShortcuts));
+  };
+
+  const handleDeleteShortcut = (indexToDelete: number) => {
+      const updatedShortcuts = shortcuts.filter((_, index) => index !== indexToDelete);
+      setShortcuts(updatedShortcuts);
+      localStorage.setItem('shortcuts', JSON.stringify(updatedShortcuts));
   };
 
   const timeOfDay = getTimeOfDay(currentDate);
@@ -606,10 +626,8 @@ const App: React.FC = () => {
       inputPlaceholder: isDark ? 'placeholder:text-white/50' : 'placeholder:text-black/60',
       inputFocusRing: isDark ? 'focus:ring-white/30' : 'focus:ring-black/20',
       modalBg: isDark ? 'bg-black/50' : 'bg-white/70',
-      chatModalBg: isDark ? 'bg-[#1C1C1E]' : 'bg-[#F2F2F7]',
       modalText: isDark ? 'text-white/90' : 'text-black/90',
       modalBorder: isDark ? 'border-white/20' : 'border-black/20',
-      modalLink: isDark ? 'text-[#90b8f8]' : 'text-[#0056b3]',
       modalButtonBg: isDark ? 'bg-white/10' : 'bg-black/10',
       modalButtonHoverBg: isDark ? 'hover:bg-white/20' : 'hover:bg-black/20',
     };
@@ -629,38 +647,14 @@ const App: React.FC = () => {
       inputPlaceholder: isDark ? 'placeholder:text-white/50' : 'placeholder:text-black/60',
       inputFocusRing: isDark ? 'focus:ring-white/30' : 'focus:ring-black/20',
       modalBg: isDark ? 'bg-black/50' : 'bg-white/70',
-      chatModalBg: isDark ? 'bg-[#1C1C1E]' : 'bg-[#F2F2F7]',
       modalText: isDark ? 'text-white/90' : 'text-black/90',
       modalBorder: isDark ? 'border-white/20' : 'border-black/20',
-      modalLink: isDark ? 'text-[#90b8f8]' : 'text-[#0056b3]',
       modalButtonBg: isDark ? 'bg-white/10' : 'bg-black/10',
       modalButtonHoverBg: isDark ? 'hover:bg-white/20' : 'hover:bg-black/20',
     };
   }
-  
-  const onDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsDragging(true);
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
-    modalStartPos.current = { ...modalPosition };
-    e.preventDefault();
-  };
 
-  useEffect(() => {
-    const onDragMove = (e: MouseEvent) => {
-        const dx = e.clientX - dragStartPos.current.x;
-        const dy = e.clientY - dragStartPos.current.y;
-        setModalPosition({ x: modalStartPos.current.x + dx, y: modalStartPos.current.y + dy });
-    };
-    const onDragEnd = () => setIsDragging(false);
-    if (isDragging) {
-        window.addEventListener('mousemove', onDragMove);
-        window.addEventListener('mouseup', onDragEnd);
-    }
-    return () => {
-        window.removeEventListener('mousemove', onDragMove);
-        window.removeEventListener('mouseup', onDragEnd);
-    };
-  }, [isDragging]);
+  const placeholderText = `Search ${SEARCH_OPTIONS.find(o => o.key === searchMode)?.name}...`;
 
   return (
     <div className={`relative w-screen h-screen bg-gradient-to-b ${theme.bg} overflow-hidden transition-colors duration-1000 ease-in-out animated-gradient`}>
@@ -681,84 +675,41 @@ const App: React.FC = () => {
         <p className={`font-['Lato'] text-xl ${theme.dateText} tracking-[0.2em] -mt-8 transition-colors duration-1000`}>
           {formatDate(currentDate)}
         </p>
-        <SystemInfo textColor={theme.statsText} strokeColor={theme.statsStroke} barColor={theme.statsBarFill} />
+        {showStats ? (
+          <SystemInfo textColor={theme.statsText} strokeColor={theme.statsStroke} barColor={theme.statsBarFill} />
+        ) : (
+          <div className="w-72 h-[132px] mt-8" />
+        )}
       </main>
 
-      <form onSubmit={handleSearchSubmit} className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-10">
-        <input type="text" value={geminiQuery} onChange={(e) => setGeminiQuery(e.target.value)} 
-          placeholder={searchMode === 'ai' ? "Ask Gemini anything..." : "Search Google..."}
-          className={`w-full border-none rounded-full px-5 py-3 text-center focus:outline-none transition-all duration-300 ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${theme.inputFocusRing}`}
-          disabled={isGeminiLoading} />
-      </form>
-      
-      {(conversationHistory.length > 0) && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center p-4 z-10" onClick={handleBackdropClick}>
-          <div style={{ transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)` }}
-            className={`${theme.chatModalBg} ${theme.modalText} rounded-2xl shadow-2xl max-w-2xl w-full font-['Lato'] max-h-[90vh] flex flex-col transition-colors duration-1000 border ${theme.modalBorder}`} 
-            onClick={(e) => e.stopPropagation()}>
-            <div onMouseDown={onDragStart} className={`h-10 px-4 rounded-t-lg flex items-center justify-between ${theme.modalButtonBg}`}>
-                <div className="flex items-center gap-2">
-                    <StarIcon className="w-5 h-5 opacity-80" />
-                    <span className="font-bold text-sm tracking-wide">Gemini Assistant</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div onClick={handleCloseModal} className="w-3.5 h-3.5 rounded-full bg-red-500/80 cursor-pointer transition-transform hover:scale-110 active:scale-95"></div>
-                    <div className="w-3.5 h-3.5 rounded-full bg-yellow-500/80"></div>
-                    <div className="w-3.5 h-3.5 rounded-full bg-green-500/80"></div>
-                </div>
-            </div>
-            <div ref={modalContentRef} className="p-6 flex-grow overflow-y-auto space-y-6">
-              {conversationHistory.map((entry, index) => (
-                <div key={index}>
-                  {entry.role === 'user' && (
-                    <div className="flex justify-end">
-                      <div className={`p-3 rounded-2xl max-w-lg ${theme.modalButtonBg}`}>
-                        <p>{entry.content}</p>
-                      </div>
-                    </div>
-                  )}
-                  {entry.role === 'model' && (
-                    <div className="flex justify-start">
-                      <div className={`p-3 rounded-2xl max-w-lg ${theme.inputBg}`}>
-                        <p className="whitespace-pre-wrap">{entry.content}</p>
-                        {entry.sources && entry.sources.length > 0 && (
-                          <div className={`mt-4 pt-4 border-t ${theme.modalBorder}`}>
-                            <h3 className="text-sm font-bold tracking-wider uppercase mb-2">Sources</h3>
-                            <ul className="list-disc list-inside text-sm space-y-1">
-                              {entry.sources.map((source, idx) => (
-                                <li key={idx}>
-                                  <a href={source.uri} target="_blank" rel="noopener noreferrer" className={`${theme.modalLink} hover:underline break-all`}>
-                                    {source.title}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {isGeminiLoading && <GeminiThinkingAnimation />}
-            </div>
-            <div className={`p-4 border-t ${theme.modalBorder}`}>
-                <form onSubmit={(e) => { e.preventDefault(); handleGeminiSubmit(followUpQuery, true); setFollowUpQuery(''); }}>
-                    <input type="text" value={followUpQuery} onChange={(e) => setFollowUpQuery(e.target.value)} placeholder="Ask a follow-up..."
-                        className={`w-full border-none rounded-full px-4 py-2 focus:outline-none transition-all duration-300 text-sm ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${theme.inputFocusRing}`}
-                        disabled={isGeminiLoading} />
-                </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className={`fixed left-1/2 -translate-x-1/2 w-full max-w-lg z-10 transition-all duration-500 ease-in-out ${showStats ? 'bottom-6' : 'bottom-48'}`}>
+        <ShortcutsDisplay shortcuts={shortcuts} theme={theme} />
+        <form onSubmit={handleSearchSubmit} className="px-4">
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
+            placeholder={placeholderText}
+            className={`w-full border-none rounded-full px-5 py-3 text-center focus:outline-none transition-all duration-300 ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${theme.inputFocusRing}`}
+            />
+        </form>
+      </div>
       
       <Toast message={weatherError || ''} show={showWeatherToast} />
-      <Toast message="Click outside again to close" show={showCloseToast} />
       
-      <SearchToggle searchMode={searchMode} setSearchMode={setSearchMode} theme={theme} />
-
-      <Settings theme={theme} isSettingsOpen={isSettingsOpen} setIsSettingsOpen={setIsSettingsOpen} activeThemeKey={themeOverride} setThemeOverride={handleThemeOverride} customThemes={customThemes} openCustomEditor={() => setIsCustomThemeEditorOpen(true)} />
+      <Settings 
+        theme={theme} 
+        isSettingsOpen={isSettingsOpen} 
+        setIsSettingsOpen={setIsSettingsOpen} 
+        activeThemeKey={themeOverride} 
+        setThemeOverride={handleThemeOverride} 
+        customThemes={customThemes} 
+        openCustomEditor={() => setIsCustomThemeEditorOpen(true)} 
+        searchMode={searchMode} 
+        handleSetSearchMode={handleSetSearchMode}
+        showStats={showStats}
+        onToggleStats={handleToggleStats}
+        shortcuts={shortcuts}
+        onAddShortcut={handleAddShortcut}
+        onDeleteShortcut={handleDeleteShortcut}
+      />
       
       <CustomThemeEditor isOpen={isCustomThemeEditorOpen} onClose={() => setIsCustomThemeEditorOpen(false)} onSave={handleSaveCustomTheme} theme={theme} />
     </div>
